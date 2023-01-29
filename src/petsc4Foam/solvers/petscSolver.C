@@ -29,11 +29,12 @@ License
 #include "fvMesh.H"
 #include "fvMatrices.H"
 #include "globalIndex.H"
-#include "PrecisionAdaptor.H"
+//#include "PrecisionAdaptor.H"
 #include "cyclicLduInterface.H"
 #include "cyclicAMILduInterface.H"
 #include "addToRunTimeSelectionTable.H"
 #include "PstreamGlobals.H"
+#include "labelRange.H"
 
 #include "petscSolver.H"
 #include "petscControls.H"
@@ -108,17 +109,18 @@ Foam::petscSolver::petscSolver
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-Foam::solverPerformance Foam::petscSolver::scalarSolve
+Foam::solverPerformance Foam::petscSolver::solve
 (
-    solveScalarField& psi,
-    const solveScalarField& source,
+    scalarField& psi,
+    const scalarField& source,
     const direction cmpt
 ) const
 {
+    const fvMesh& fvm = dynamicCast<const fvMesh>(matrix_.mesh().thisDb());
     // Ensure PETSc is initialized
     const petscControls& controls = petscControls::New
     (
-        matrix_.mesh().thisDb().time()
+        fvm
     );
 
     if (!controls.valid())
@@ -129,7 +131,7 @@ Foam::solverPerformance Foam::petscSolver::scalarSolve
 
     const bool verbose
     (
-        petscDict_.getOrDefault("verbose", false)
+        petscDict_.lookupOrDefault("verbose", false)
     );
 
     // set all petsc flags in the prefix db
@@ -141,7 +143,7 @@ Foam::solverPerformance Foam::petscSolver::scalarSolve
         verbose
     );
 
-    const fvMesh& fvm = dynamicCast<const fvMesh>(matrix_.mesh().thisDb());
+    
 
     const linearSolverContextTable<petscLinearSolverContext>& contexts =
         linearSolverContextTable<petscLinearSolverContext>::New(fvm);
@@ -198,13 +200,13 @@ Foam::solverPerformance Foam::petscSolver::scalarSolve
     // Use built-in residual norm computation
     const bool usePetscResidualNorm
     (
-        petscDict_.getOrDefault("use_petsc_residual_norm", false)
+        petscDict_.lookupOrDefault("use_petsc_residual_norm", false)
     );
 
     // Monitor built-in residual
     const bool monitorFoamResidualNorm
     (
-        petscDict_.getOrDefault("monitor_foam_residual_norm", false)
+        petscDict_.lookupOrDefault("monitor_foam_residual_norm", false)
     );
 
     // This optimization is disabled since some KSP implementations
@@ -320,21 +322,21 @@ Foam::solverPerformance Foam::petscSolver::scalarSolve
 }
 
 
-Foam::solverPerformance Foam::petscSolver::solve
-(
-    scalarField& psi_s,
-    const scalarField& source,
-    const direction cmpt
-) const
-{
-    PrecisionAdaptor<solveScalar, scalar> tpsi(psi_s);
-    return scalarSolve
-    (
-        tpsi.ref(),
-        ConstPrecisionAdaptor<solveScalar, scalar>(source)(),
-        cmpt
-    );
-}
+//Foam::solverPerformance Foam::petscSolver::solve
+//(
+//    scalarField& psi_s,
+//    const scalarField& source,
+//   const direction cmpt
+//) const
+//{
+//    PrecisionAdaptor<solveScalar, scalar> tpsi(psi_s);
+//    return scalarSolve
+//    (
+//        tpsi.ref(),
+//        ConstPrecisionAdaptor<solveScalar, scalar>(source)(),
+//        cmpt
+//    );
+//}
 
 
 void Foam::petscSolver::updateKsp
@@ -416,7 +418,7 @@ void Foam::petscSolver::buildMat
     (
         PstreamGlobals::MPICommunicators_.empty()
       ? PETSC_COMM_SELF
-      : PstreamGlobals::MPICommunicators_[matrix_.mesh().comm()]
+      : PstreamGlobals::MPICommunicators_[matrix_.mesh().comm()] // lduMatrix::lduMesh::comm
     );
 
     // traversal-based algorithm
@@ -471,7 +473,7 @@ void Foam::petscSolver::buildMat
     // Number of non-zeros from interfaces (on-processor or off-processor)
     forAll(interfaces, patchi)
     {
-        const lduInterface* intf = interfaces.set(patchi);
+        const lduInterface* intf = interfaces(patchi);
 
         if (intf)
         {
@@ -648,14 +650,20 @@ void Foam::petscSolver::updateMat
         }
     }
 
-    labelList globalCells
-    (
-        identity
-        (
-            globalNumbering_.localSize(),
-            globalNumbering_.localStart()
-        )
-    );
+        labelList globalCells(nrows_);
+        forAll(globalCells, celli)
+        {
+            globalCells[celli] = globalNumbering_.toGlobal(Pstream::myProcNo(), celli);
+        }
+
+    //    labelList globalCells
+    //    (
+    //        identity
+    //        (
+    //            globalNumbering_.localSize(),
+    //            globalNumbering_.localStart()
+    //        )
+    //    );
 
     // Connections to neighbouring processors
     {
@@ -705,7 +713,7 @@ void Foam::petscSolver::updateMat
                         << exit(FatalError);
                 }
 
-                const label off = globalNumbering_.localStart();
+                const label off = globalNumbering_.offset(Pstream::myProcNo());
 
                 // NB:opposite sign since we using this sides'
                 //    coefficients (from discretising our face; not the

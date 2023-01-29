@@ -79,7 +79,7 @@ class PetscWrappedVector
             VecPlaceArray
             (
                 vec_,
-                reinterpret_cast<solveScalar*>(const_cast<T*>(list.cdata()))
+                reinterpret_cast<scalar*>(const_cast<T*>(list.cdata()))
             );
             reset_ = true;
         }
@@ -98,7 +98,7 @@ class PetscWrappedVector
                 pTraits<T>::nComponents,
                 list.size(),
                 PETSC_DECIDE,
-                reinterpret_cast<solveScalar*>(const_cast<T*>(list.cdata())),
+                reinterpret_cast<scalar*>(const_cast<T*>(list.cdata())),
                 &vec_
             );
             reset_ = false;
@@ -131,7 +131,7 @@ public:
         //- Wrap an OpenFOAM list of values as a PETSc vector
         PetscWrappedVector
         (
-            const UList<solveScalar>& list,
+            const UList<scalar>& list,
             Mat mat
         )
         :
@@ -143,7 +143,7 @@ public:
         //- Wrap an OpenFOAM list of values as a PETSc vector
         explicit PetscWrappedVector
         (
-            const UList<solveScalar>& list,
+            const UList<scalar>& list,
             MPI_Comm comm = PETSC_COMM_WORLD
         )
         :

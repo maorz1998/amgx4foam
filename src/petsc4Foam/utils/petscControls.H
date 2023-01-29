@@ -41,7 +41,7 @@ SourceFiles
 
 #include "IOdictionary.H"
 #include "MeshObject.H"
-
+#include "fvMesh.H"
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -56,7 +56,7 @@ class Time;
 
 class petscControls
 :
-    public MeshObject<Time, TopologicalMeshObject, petscControls>,
+    public MeshObject<fvMesh, TopologicalMeshObject, petscControls>,
     public IOdictionary
 {
     // Private Data
@@ -75,7 +75,7 @@ public:
 
         //- Construct on top-level Time with system dictionary name.
         //  Invokes start()
-        explicit petscControls(const Time& runTime);
+        explicit petscControls(const fvMesh& runTime);
 
 
     //- Destructor - invokes stop()
@@ -85,7 +85,7 @@ public:
     // Member Functions
 
         //- Singleton access to petscControlDict on Time
-        static const petscControls& New(const Time& runTime);
+        static const petscControls& New(const fvMesh& runTime);
 
         //- Call PetscInitialize() if required
         static void start(const fileName& optionsFile = "");

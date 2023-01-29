@@ -30,18 +30,18 @@ License
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
-const Foam::Enum
-<
-    Foam::PetscUtils::Caching::updateTypes
->
-Foam::PetscUtils::Caching::updateTypeNames_
-{
-    { updateTypes::Always, "always" },
-    { updateTypes::Periodic, "periodic" },
-    { updateTypes::Adaptive, "adaptive" },
-    { updateTypes::Never, "never" },
-    { updateTypes::Never, "none" }, // Alias
-};
+//const Foam::NamedEnum
+//<
+//    Foam::PetscUtils::Caching::updateTypes
+//>
+//Foam::PetscUtils::Caching::updateTypeNames_
+//{
+//    { updateTypes::Always, "always" },
+//   { updateTypes::Periodic, "periodic" },
+//    { updateTypes::Adaptive, "adaptive" },
+//   { updateTypes::Never, "never" },
+//    { updateTypes::Never, "none" }, // Alias
+//};
 
 
 // ************************************************************************* //

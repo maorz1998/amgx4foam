@@ -29,7 +29,7 @@ License
 #include "fvMesh.H"
 #include "fvMatrices.H"
 #include "globalIndex.H"
-#include "PrecisionAdaptor.H"
+//#include "PrecisionAdaptor.H"
 #include "cyclicLduInterface.H"
 #include "cyclicAMILduInterface.H"
 #include "addToRunTimeSelectionTable.H"
@@ -87,17 +87,19 @@ Foam::amgxSolver::amgxSolver
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 
-Foam::solverPerformance Foam::amgxSolver::scalarSolve
+Foam::solverPerformance Foam::amgxSolver::solve
 (
-    solveScalarField& psi,
-    const solveScalarField& source,
+    scalarField& psi,
+    const scalarField& source,
     const direction cmpt
 ) const
 {
+    const fvMesh& fvm = dynamicCast<const fvMesh>(matrix_.mesh().thisDb());
+
     // Ensure PETSc is initialized
     const petscControls& pcontrols = petscControls::New
     (
-        matrix_.mesh().thisDb().time()
+        fvm
     );
 
     if (!pcontrols.valid())
@@ -108,12 +110,12 @@ Foam::solverPerformance Foam::amgxSolver::scalarSolve
 
     dictionary amgxDictCaching = amgxDict_.subOrEmptyDict("caching");
    
-    const fvMesh& fvm = dynamicCast<const fvMesh>(matrix_.mesh().thisDb());
+    //const fvMesh& fvm = dynamicCast<const fvMesh>(matrix_.mesh().thisDb());
 
     const linearSolverContextTable<amgxLinearSolverContext>& contexts =
         linearSolverContextTable<amgxLinearSolverContext>::New(fvm);
 
-    amgxLinearSolverContext& ctx = contexts.getContext(eqName_);
+    amgxLinearSolverContext& ctx = contexts.getContext(amgxDict_.lookup("dict"));
 
     if (!ctx.loaded())
     {
@@ -250,21 +252,21 @@ Foam::solverPerformance Foam::amgxSolver::scalarSolve
     return ctx.performance;
 }
 
-Foam::solverPerformance Foam::amgxSolver::solve
-(
-    scalarField& psi_s,
-    const scalarField& source,
-    const direction cmpt
-) const
-{
-    PrecisionAdaptor<solveScalar, scalar> tpsi(psi_s);
-    return scalarSolve
-    (
-        tpsi.ref(),
-        ConstPrecisionAdaptor<solveScalar, scalar>(source)(),
-        cmpt
-    );
-}
+//Foam::solverPerformance Foam::amgxSolver::solve
+//(
+//    scalarField& psi_s,
+//    const scalarField& source,
+//    const direction cmpt
+//) const
+//{
+//    PrecisionAdaptor<solveScalar, scalar> tpsi(psi_s);
+//    return scalarSolve
+//    (
+//        tpsi.ref(),
+//        ConstPrecisionAdaptor<solveScalar, scalar>(source)(),
+//       cmpt
+//    );
+//}
 
 void Foam::amgxSolver::offloadMatrixArrays
 (
@@ -303,14 +305,20 @@ void Foam::amgxSolver::offloadMatrixArrays
     label lowOffGlobal = globalNumbering_.toGlobal(low[0]) - low[0];
     label uppOffGlobal = globalNumbering_.toGlobal(upp[0]) - upp[0];
 
-    labelList globalCells
-    (
-        identity
-        (
-            globalNumbering_.localSize(),
-            globalNumbering_.localStart()
-        )
-    );
+    labelList globalCells(nrows_);
+    forAll(globalCells, celli)
+    {
+      globalCells[celli] = globalNumbering_.toGlobal(Pstream::myProcNo(), celli);
+    }
+
+    //    labelList globalCells
+    //    (
+    //        identity
+    //        (
+    //            globalNumbering_.localSize(),
+    //            globalNumbering_.localStart()
+    //        )
+    //    );
 
     // Connections to neighbouring processors
     const label nReq = Pstream::nRequests();
@@ -438,14 +446,11 @@ void Foam::amgxSolver::offloadMatrixValues
     
     const globalIndex globalNumbering_(nrows_);
 
-    labelList globalCells
-    (
-        identity
-        (
-            globalNumbering_.localSize(),
-            globalNumbering_.localStart()
-        )
-    );
+    labelList globalCells(nrows_);
+    forAll(globalCells, celli)
+    {
+      globalCells[celli] = globalNumbering_.toGlobal(Pstream::myProcNo(), celli);
+    }
 
     // Connections to neighbouring processors
     const label nReq = Pstream::nRequests();

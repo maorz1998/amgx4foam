@@ -34,7 +34,7 @@ License
 
 // * * * * * * * * * * * * * * * Global Functions  * * * * * * * * * * * * * //
 
-Foam::solveScalar Foam::gAverage(Vec input)
+Foam::scalar Foam::gAverage(Vec input)
 {
     PetscInt len;
     VecGetSize(input, &len);
@@ -54,7 +54,7 @@ Foam::solveScalar Foam::gAverage(Vec input)
 }
 
 
-Foam::solveScalar Foam::gSum(Vec input)
+Foam::scalar Foam::gSum(Vec input)
 {
     PetscScalar val;
     VecSum(input, &val);
@@ -295,8 +295,12 @@ void Foam::PetscUtils::setFlags
     for (const entry& e : dict)
     {
         const word key = '-' + prefix + e.keyword();
-        const word val = e.get<word>();
+        //const word val = e.get<word>();
+        word val;
+        ITstream& is = e.stream();
+        is >> val;
 
+        
         if (verbose)
         {
             Info<< key << ' ' << val << nl;

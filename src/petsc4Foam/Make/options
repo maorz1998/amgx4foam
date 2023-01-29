@@ -16,12 +16,13 @@ EXE_INC = \
     -I$(LIB_SRC)/Pstream/mpi \
     $(foreach dir,$(PETSC_INC_DIR),-I$(dir)) \
     -I$(AMGX_INC) \
-    -I$(FOAM2CSR_INC)
+    -I$(FOAM2CSR_INC) \
+    -I/usr/local/cuda-11.6/include
 
 LIB_LIBS = \
     -lfiniteVolume \
     -lmeshTools \
     $(foreach dir,$(PETSC_LIB_DIR),-L$(dir)) -lpetsc \
     -L$(AMGX_LIB) -lamgx \
-    -L$(FOAM_MODULE_LIBBIN) -lfoam2csr
+    -L/home/runze/1223/foam2csr/src/build -lfoam2csr
 

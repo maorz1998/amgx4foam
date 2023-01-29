@@ -113,9 +113,10 @@ public:
         {
             auto iter = contexts().find(name);
 
-            const bool cached = iter.found();
+            const bool cached = (iter!=HashTableCore::end());   //NOTE!!!!
+            
 
-            if (!iter.found())
+            if (iter==HashTableCore::end())
             {
                 contexts().set(name, new T{name, this->mesh().thisDb().time().system()/T::packageName + name + "Options"});
                 iter = contexts().find(name);

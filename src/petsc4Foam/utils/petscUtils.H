@@ -51,10 +51,10 @@ namespace Foam
 {
 
 //- Global average value in PETSc vector
-solveScalar gAverage(Vec input);
+scalar gAverage(Vec input);
 
 //- Global sum of PETSc vector
-solveScalar gSum(Vec input);
+scalar gSum(Vec input);
 
 
 namespace PetscUtils

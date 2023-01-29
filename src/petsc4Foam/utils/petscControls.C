@@ -112,29 +112,29 @@ void Foam::petscControls::stop()
 
 // * * * * * * * * * * * * * * * * Constructors * * * * * * * * * * * * * * //
 
-Foam::petscControls::petscControls(const Time& runTime)
+Foam::petscControls::petscControls(const Foam::fvMesh& mesh)
 :
-    MeshObject<Time, TopologicalMeshObject, petscControls>(runTime),
+    MeshObject<fvMesh, TopologicalMeshObject, petscControls>(mesh),
     IOdictionary
     (
         IOobject
         (
             petscControls::typeName,
-            runTime.system(),
-            runTime,
+            mesh.time().system(),
+            mesh.time(),
             IOobject::READ_IF_PRESENT,
             IOobject::NO_WRITE,
             false // no register
         )
     )
 {
-    start(runTime.system()/"petscOptions");
+    start(mesh.time().system()/"petscOptions");
 }
 
 
-const Foam::petscControls& Foam::petscControls::New(const Time& runTime)
+const Foam::petscControls& Foam::petscControls::New(const Foam::fvMesh& mesh)
 {
-    return MeshObject<Time, TopologicalMeshObject, petscControls>::New(runTime);
+    return MeshObject<fvMesh, TopologicalMeshObject, petscControls>::New(mesh);
 }
 
 

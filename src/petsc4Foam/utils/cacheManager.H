@@ -64,10 +64,14 @@ SourceFiles
 #ifndef foamCacheManager_H
 #define foamCacheManager_H
 
-#include "Enum.H"
-#include "clockValue.H"
+//#include "Enum.H"
+//#include "clockValue.H"
+//#include "dictionary.H"
+#include "NamedEnum.H"
 #include "dictionary.H"
+#include <chrono>
 
+typedef std::chrono::high_resolution_clock::duration value_type;
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -84,30 +88,31 @@ struct Caching
     // Public Data Types
 
         //- Caching update types
-        enum updateTypes
-        {
-            Always,         //!< "always" update every time-step [default]
-            Periodic,       //!< "periodic" update at given period
-            Adaptive,       //!< "adaptive" update scheme
-            Never,          //!< "never" update (or "none")
-        };
+        //enum updateTypes
+        //{
+        //   Always,         //!< "always" update every time-step [default]
+        //   Periodic,       //!< "periodic" update at given period
+        //   Adaptive,       //!< "adaptive" update scheme
+        //   Never,          //!< "never" update (or "none")
+        //};
 
 
         //- Names for the update types
-        static const Enum<updateTypes> updateTypeNames_;
-
+        //static const Enum<updateTypes> updateTypeNames_;
+        //static const NamedEnum<updateTypes> updateTypeNames_;
+        //static const Foam::NamedEnum<updateTypes, 4> updateTypeNames_;
 
     // Member Data
 
         //- Caching update
-        updateTypes updateType_;
+        //updateTypes updateType_;
 
         //- Cache update frequency (for Periodic)
         int updateFreq_;
-
+        word updateType_;
         //- Elapsed time (s) for current iteration
         double timeIter;
-
+        int iter_;
         //- Elapsed time (s) for first iteration
         double time0;
 
@@ -115,40 +120,150 @@ struct Caching
         double time1;
 
         //- Timer value
-        clockValue timer_;
-
+        //clockValue timer_;
+        value_type timer_;
 
     // Constructors
 
         //- Default construct. Always update (no caching).
         Caching()
         :
-           updateType_{updateTypes::Always},
+           updateType_{"always"},
            updateFreq_{1},
            timeIter{0},
            time0{0},
            time1{0}
-        {}
+        {timer_ = value_type::zero();}
 
-
-    void init(const word& key, const dictionary& dict)
-    {
-        dictionary cacheDict = dict.subOrEmptyDict(key);
-        updateType_ =
-            updateTypeNames_.getOrDefault
-            (
-                "update",
-                cacheDict,
-                updateTypes::Always,
-                false  // non-failsafe - Fatal on bad enumeration
-            );
-
-        if (updateType_ == updateTypes::Periodic)
+    //member functions
+        //- The caching type
+        word type() const noexcept
         {
-            dictionary coeffs(cacheDict.subOrEmptyDict("periodicCoeffs"));
-            updateFreq_ = coeffs.getOrDefault<int>("frequency", 1);
+            return updateType_;
+        }
+
+        //- True if caching type is Adaptive
+        bool isAdaptive() const noexcept
+        {
+            return "adaptive" == updateType_;
+        }
+
+        //- True if caching type is Periodic
+        bool isPeriodic() const noexcept
+        {
+            return "periodic" == updateType_;
+        }
+
+        void beginTimes()
+        {
+            // timer_.update();
+            //Returns a duration representing the amount of time between *this and the clock's epoch.
+            timer_ = std::chrono::high_resolution_clock::now().time_since_epoch();
+        }
+        void init(const word& key, const dictionary& dict)
+        {   
+            iter_ = 0;
+            dictionary cacheDict = dict.subOrEmptyDict(key);
+            updateType_ = cacheDict.lookupOrDefault("update",word("always"));
+
+            if ("periodic" == updateType_)
+            {
+                dictionary coeffs(cacheDict.subOrEmptyDict("periodicCoeffs"));
+                updateFreq_ = coeffs.lookupOrDefault("frequency", 1);
+            }
+    }
+ 
+
+
+        //- Update timing for iterations
+    void updateTimes()
+    {
+        // Elapsed timing interval (s)
+        // timeIter_ = timer_.elapsed();
+        value_type timer_tmp;
+        timer_tmp = std::chrono::high_resolution_clock::now().time_since_epoch() - timer_;
+        timeIter = (double(timer_tmp.count()) * value_type::period::num) / value_type::period::den;
+
+        if (iter_ == 0)
+        {
+            time0 = timeIter;
+        } 
+        else if (iter_ == 1)
+        {
+            time1 = timeIter;
         }
     }
+
+        //- Check if an update is required
+        bool needsUpdate()
+        {
+            // Default: Always update
+            bool need = true;
+
+            // switch (updateType_)
+            // {
+                // case "never":
+                if (updateType_ == "never")
+                {
+                    need = false;
+                    // break;
+                    return need;
+                }
+
+                // case "always":
+                if (updateType_ == "always")
+                {
+                    // break;
+                    return need;
+                }
+
+                // case "periodic":
+                if (updateType_ == "periodic")
+                {
+                    if
+                    (
+                        updateFreq_ <= 1
+                     || (iter_ % updateFreq_) == 0
+                    )
+                    {
+                        iter_ = 0;
+                    }
+                    else
+                    {
+                        need = false;
+                    }
+                    // break;
+                    return need;
+                }
+
+                // case "adaptive":
+                if (updateType_ == "adaptive")
+                {
+                    if (iter_ > 3)  // Need at least three iterations
+                    {
+                        const double ratio0 = time0 / timeIter;
+
+                        const double ratio1 = time1 / timeIter;
+
+                        const int nsteps =
+                            min(1e5, ratio0 * (1. / mag(1. - ratio1 + 1e-6)));
+
+                        if (iter_ >= nsteps)
+                        {
+                            iter_ = 0;
+                        }
+                        else
+                        {
+                            need = false;
+                        }
+                    }
+                    // break;
+                    return need;
+                }
+            // }
+
+            // return need;
+        }    
 };
 
 } // End namespace PetscUtils
@@ -199,29 +314,30 @@ public:
 
     bool needsMatrixUpdate()
     {
-        return needsUpdate(matrixCaching, miter);
+        return matrixCaching.needsUpdate();
     }
 
     bool needsPrecondUpdate()
     {
-        return needsUpdate(precondCaching, piter);
+        return precondCaching.needsUpdate();
     }
 
     void eventBegin()
     {
-        if (precondCaching.updateType_ == PetscUtils::Caching::Adaptive)
+        if (precondCaching.isAdaptive())
         {
             // Begin timing interval
-            precondCaching.timer_.update();
+            //precondCaching.timer_.update();
+            precondCaching.timer_=std::chrono::high_resolution_clock::now().time_since_epoch();
         }
     }
 
     void eventEnd()
     {
-        if (precondCaching.updateType_ == PetscUtils::Caching::Adaptive)
+        if (precondCaching.isPeriodic())
         {
             // Elapsed timing interval (s)
-            precondCaching.timeIter = precondCaching.timer_.elapsed();
+            precondCaching.updateTimes();
 
             if (piter == 0)
             {
@@ -235,15 +351,15 @@ public:
 
         if
         (
-            precondCaching.updateType_ == PetscUtils::Caching::Periodic
-         || precondCaching.updateType_ == PetscUtils::Caching::Adaptive
+            precondCaching.isPeriodic()
+         || precondCaching.isAdaptive()
         )
         {
             ++piter;
         }
         if
         (
-            matrixCaching.updateType_ == PetscUtils::Caching::Periodic
+            matrixCaching.isPeriodic()
         )
         {
             ++miter;
@@ -251,71 +367,71 @@ public:
     }
 
 
-private:
+// private:
 
-    bool needsUpdate(const PetscUtils::Caching& caching, label& iter) const
-    {
-        // Default: Always update
-        bool need = true;
+//     bool needsUpdate(const PetscUtils::Caching& caching, label& iter) const
+//     {
+//         // Default: Always update
+//         bool need = true;
 
-        switch (caching.updateType_)
-        {
-            case PetscUtils::Caching::Never:
-            {
-                need = false;
-                break;
-            }
+//         switch (caching.updateType_)
+//         {
+//             case PetscUtils::Caching::Never:
+//             {
+//                 need = false;
+//                 break;
+//             }
 
-            case PetscUtils::Caching::Always:
-            {
-                break;
-            }
+//             case PetscUtils::Caching::Always:
+//             {
+//                 break;
+//             }
 
-            case PetscUtils::Caching::Periodic:
-            {
-                if
-                (
-                    caching.updateFreq_ <= 1
-                 || (iter % caching.updateFreq_) == 0
-                )
-                {
-                    iter = 0;
-                }
-                else
-                {
-                    need = false;
-                }
-                break;
-            }
+//             case PetscUtils::Caching::Periodic:
+//             {
+//                 if
+//                 (
+//                     caching.updateFreq_ <= 1
+//                  || (iter % caching.updateFreq_) == 0
+//                 )
+//                 {
+//                     iter = 0;
+//                 }
+//                 else
+//                 {
+//                     need = false;
+//                 }
+//                 break;
+//             }
 
-            case PetscUtils::Caching::Adaptive:
-            {
-                if (iter > 3) // we need at least three times
-                {
-                    const double ratio0 =
-                        caching.time0 / caching.timeIter;
+//             case PetscUtils::Caching::Adaptive:
+//             {
+//                 if (iter > 3) // we need at least three times
+//                 {
+//                     const double ratio0 =
+//                         caching.time0 / caching.timeIter;
 
-                    const double ratio1 =
-                        caching.time1 / caching.timeIter;
+//                     const double ratio1 =
+//                         caching.time1 / caching.timeIter;
 
-                    const int nsteps =
-                        min(1e5, ratio0 * (1. / mag(1. - ratio1 + 1e-6)));
+//                     const int nsteps =
+//                         min(1e5, ratio0 * (1. / mag(1. - ratio1 + 1e-6)));
 
-                    if (iter >= nsteps)
-                    {
-                        iter = 0;
-                    }
-                    else
-                    {
-                        need = false;
-                    }
-                }
-                break;
-            }
-        }
+//                     if (iter >= nsteps)
+//                     {
+//                         iter = 0;
+//                     }
+//                     else
+//                     {
+//                         need = false;
+//                     }
+//                 }
+//                 break;
+//             }
+//         }
 
-        return need;
-    }
+//         return need;
+//     }
 };
 
 

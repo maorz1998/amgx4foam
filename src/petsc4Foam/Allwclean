@@ -3,11 +3,34 @@ cd "${0%/*}" || exit                                # Run from this directory
 . ${WM_PROJECT_DIR:?}/wmake/scripts/wmakeFunctions  # The wmake functions
 # -----------------------------------------------------------------------------
 
-rm -f $FOAM_LIBBIN/libpetscFoam*                 # Cleanup library
-rm -f $FOAM_SITE_LIBBIN/libpetscFoam*            # ... extra safety
-rm -f $FOAM_USER_LIBBIN/libpetscFoam*            # ... extra safety
+# Remove library files
+# - regular and mpi-specific locations
+
+for libDir in "$FOAM_LIBBIN" "$FOAM_SITE_LIBBIN" "$FOAM_USER_LIBBIN"
+do
+    if [ -d "$libDir" ]
+    then
+        for dir in "$libDir" "$libDir/$FOAM_MPI"
+        do
+            rm -f "$dir"/libpetscFoam*
+        done
+    fi
+done
+
+removeObjectDir()
+{
+    local objectsDir=$(findObjectDir ${1:-.})
+    if [ -d "$objectsDir" ]
+    then
+        rm -rf "$objectsDir" > /dev/null 2>&1
+    fi
+}
+
+
+
 
 # Cleanup generated files - remove entire top-level
 removeObjectDir "$PWD"
 
+wclean 
 # -----------------------------------------------------------------------------
