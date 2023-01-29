@@ -1,0 +1,13 @@
+#!/bin/sh
+cd "${0%/*}" || exit                                # Run from this directory
+. ${WM_PROJECT_DIR:?}/wmake/scripts/wmakeFunctions  # The wmake functions
+# -----------------------------------------------------------------------------
+
+rm -f $FOAM_LIBBIN/libpetscFoam*                 # Cleanup library
+rm -f $FOAM_SITE_LIBBIN/libpetscFoam*            # ... extra safety
+rm -f $FOAM_USER_LIBBIN/libpetscFoam*            # ... extra safety
+
+# Cleanup generated files - remove entire top-level
+removeObjectDir "$PWD"
+
+# -----------------------------------------------------------------------------
