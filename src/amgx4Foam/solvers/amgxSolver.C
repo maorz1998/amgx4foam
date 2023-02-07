@@ -38,8 +38,9 @@ License
 #include "amgxSolver.H"
 #include "amgxLinearSolverContext.H"
 #include "linearSolverContextTable.H"
-#include "petscControls.H"
-#include "petscWrappedVector.H"
+//#include "petscControls.H"
+//#include "petscWrappedVector.H"
+
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -97,16 +98,16 @@ Foam::solverPerformance Foam::amgxSolver::solve
     const fvMesh& fvm = dynamicCast<const fvMesh>(matrix_.mesh().thisDb());
 
     // Ensure PETSc is initialized
-    const petscControls& pcontrols = petscControls::New
-    (
-        fvm
-    );
+    //const petscControls& pcontrols = petscControls::New
+    //(
+    //    fvm
+    //);
 
-    if (!pcontrols.valid())
-    {
-        FatalErrorInFunction
-            << "Could not initialize PETSc" << nl << abort(FatalError);
-    }
+    //if (!pcontrols.valid())
+    //{
+    //   FatalErrorInFunction
+    //        << "Could not initialize PETSc" << nl << abort(FatalError);
+    //}
 
     dictionary amgxDictCaching = amgxDict_.subOrEmptyDict("caching");
    
@@ -139,25 +140,10 @@ Foam::solverPerformance Foam::amgxSolver::solve
         DebugInfo<< "Initializing AmgX Linear Solver " << eqName_ << nl;
 
         ctx.initialized() = true;
+        
         needsCacheUpdate = false;
 
-        PetscLogStageRegister
-        (
-            ("foam_" + eqName_ + "_mat").c_str(),
-            &ctx.matstage
-        );
-        PetscLogStageRegister
-        (
-            ("foam_" + eqName_ + "_setup").c_str(),
-            &ctx.setupstage
-        );
-        PetscLogStageRegister
-        (
-            ("foam_" + eqName_ + "_solve").c_str(),
-            &ctx.solvestage
-        );
-
-        PetscLogStagePush(ctx.matstage);
+  
        
         amgx.initialiseMatrixComms(Amat);
 
@@ -169,8 +155,7 @@ Foam::solverPerformance Foam::amgxSolver::solve
             numberNonZeroes
         );
     
-        PetscLogStagePop();
-        PetscLogStagePush(ctx.setupstage);
+       
 
         amgx.setOperator
         (
@@ -180,14 +165,14 @@ Foam::solverPerformance Foam::amgxSolver::solve
 	    Amat 
         );
 
-        PetscLogStagePop();
+
     }
 
     const bool matup = ctx.caching.needsMatrixUpdate();
     // const bool pcup = ctx.caching.needsPrecondUpdate();
     if (matup && needsCacheUpdate)
     {
-        PetscLogStagePush(ctx.matstage);
+
     
         offloadMatrixValues
         (
@@ -196,8 +181,7 @@ Foam::solverPerformance Foam::amgxSolver::solve
             numberNonZeroes
         );
 
-        PetscLogStagePop();
-        PetscLogStagePush(ctx.setupstage);
+
         
         amgx.updateOperator
         (
@@ -206,7 +190,7 @@ Foam::solverPerformance Foam::amgxSolver::solve
 	    Amat
         );
         
-        PetscLogStagePop();
+
     }
 
     const word solverName("AMGx");
@@ -214,7 +198,7 @@ Foam::solverPerformance Foam::amgxSolver::solve
     // Setup class containing solver performance data
     solverPerformance solverPerf
     (
-        "PETSc-" + solverName,
+        solverName,
         fieldName_
     );
 
@@ -222,27 +206,29 @@ Foam::solverPerformance Foam::amgxSolver::solve
     ctx.performance = solverPerf;
 
     // Create solution and rhs vectors for PETSc
-    PetscWrappedVector petsc_psi(psi); // Amat
-    PetscWrappedVector petsc_source(source); // Amat
+    //PetscWrappedVector petsc_psi(psi); // Amat
+    //PetscWrappedVector petsc_source(source); // Amat
     
     // Add monitor to record initial residual
     ctx.performance.initialResidual() = 0;
 
     // Solve A x = b
-    PetscLogStagePush(ctx.solvestage);
-    amgx.solve(nRowsLocal, petsc_psi, petsc_source, Amat);
-    PetscLogStagePop();
+    //AMGX_vector_handle psi;
+    //AMGX_vector_handle source;
 
-    PetscReal irnorm = 0.;
+    amgx.solve(nRowsLocal, &psi[0], &source[0], Amat);
+
+
+    double irnorm = 0.;
     amgx.getResidual(0, irnorm);
     ctx.performance.initialResidual() = irnorm;
 
     // Set nIterations and final residual (from AMGx)
-    PetscInt nIters = 0;
+    int nIters = 0;
     amgx.getIters(nIters);
     ctx.performance.nIterations() = nIters - 1;
 
-    PetscReal rnorm = 0.;
+    double rnorm = 0.;
     amgx.getResidual(nIters - 1, rnorm);
     ctx.performance.finalResidual() = rnorm;
 

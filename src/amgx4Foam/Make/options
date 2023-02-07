@@ -14,7 +14,6 @@ EXE_INC = \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(LIB_SRC)/meshTools/lnInclude \
     -I$(LIB_SRC)/Pstream/mpi \
-    $(foreach dir,$(PETSC_INC_DIR),-I$(dir)) \
     -I$(AMGX_INC) \
     -I$(FOAM2CSR_INC) \
     -I/usr/local/cuda-11.6/include
@@ -22,7 +21,6 @@ EXE_INC = \
 LIB_LIBS = \
     -lfiniteVolume \
     -lmeshTools \
-    $(foreach dir,$(PETSC_LIB_DIR),-L$(dir)) -lpetsc \
     -L$(AMGX_LIB) -lamgx \
-    -L/home/runze/1223/foam2csr/src/build -lfoam2csr
+    -L$(FOAM2CSR_LIB) -lfoam_csr
 

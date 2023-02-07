@@ -70,9 +70,6 @@ public:
         AmgXSolver amgx;
         AmgXCSRMatrix Amat; 
 
-        PetscLogStage matstage;
-        PetscLogStage setupstage;
-        PetscLogStage solvestage;
 
         static const word packageName;
 
@@ -90,9 +87,9 @@ public:
             if (isFile(optionsFile))
             {
                 // AMGx initialize
-                err = amgx.initialize(PETSC_COMM_WORLD, "dDDI", optionsFile);
+                amgx.initialize(MPI_COMM_WORLD, "dDDI", optionsFile);
             
-                MPI_Barrier(PETSC_COMM_WORLD);
+                MPI_Barrier(MPI_COMM_WORLD);
             }
             else
             {

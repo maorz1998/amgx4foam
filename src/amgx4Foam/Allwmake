@@ -2,11 +2,10 @@
 cd "${0%/*}" || exit                            # Run from this directory
 targetType=libso
 . "${WM_PROJECT_DIR:?}"/wmake/scripts/AllwmakeParseArguments
-#. "${WM_PROJECT_DIR:?}"/wmake/scripts/have_petsc
+
 
 #------------------------------------------------------------------------------
-export PETSC_LIB_DIR=$HOME/PETSc-Install/lib
-export PETSC_INC_DIR=$HOME/PETSc-Install/include
+
 
 
 wmake $targetType

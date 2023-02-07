@@ -26,19 +26,19 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "linearSolverContextTable.H"
-#include "petscLinearSolverContext.H"
+//#include "petscLinearSolverContext.H"
 #include "amgxLinearSolverContext.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
-    defineTemplateTypeNameAndDebugWithName
-    (
-        linearSolverContextTable<petscLinearSolverContext>,
-        "petscLinearSolverContextTable",
-        0
-    );
+    //defineTemplateTypeNameAndDebugWithName
+    //(
+    //   linearSolverContextTable<petscLinearSolverContext>,
+    //    "petscLinearSolverContextTable",
+    //    0
+    //);
 
     defineTemplateTypeNameAndDebugWithName
     (

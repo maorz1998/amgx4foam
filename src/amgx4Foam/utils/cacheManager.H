@@ -76,7 +76,7 @@ typedef std::chrono::high_resolution_clock::duration value_type;
 
 namespace Foam
 {
-namespace PetscUtils
+namespace AmgxUtils
 {
 
 /*---------------------------------------------------------------------------*\
@@ -283,8 +283,8 @@ class cacheManager
         //- The current (relative) iterations for preconditioner
         label piter;
 
-        PetscUtils::Caching matrixCaching;
-        PetscUtils::Caching precondCaching;
+        AmgxUtils::Caching matrixCaching;
+        //PetscUtils::Caching precondCaching;
 
 
 public:
@@ -306,7 +306,7 @@ public:
     void init(const dictionary& dict)
     {
         matrixCaching.init("matrix", dict);
-        precondCaching.init("preconditioner", dict);
+        //precondCaching.init("preconditioner", dict);
     }
 
 
@@ -317,46 +317,46 @@ public:
         return matrixCaching.needsUpdate();
     }
 
-    bool needsPrecondUpdate()
-    {
-        return precondCaching.needsUpdate();
-    }
+    //bool needsPrecondUpdate()
+    //{
+    //    return precondCaching.needsUpdate();
+    //}
 
     void eventBegin()
     {
-        if (precondCaching.isAdaptive())
-        {
+        //if (precondCaching.isAdaptive())
+        //{
             // Begin timing interval
             //precondCaching.timer_.update();
-            precondCaching.timer_=std::chrono::high_resolution_clock::now().time_since_epoch();
-        }
+        //    precondCaching.timer_=std::chrono::high_resolution_clock::now().time_since_epoch();
+        //}
     }
 
     void eventEnd()
     {
-        if (precondCaching.isPeriodic())
-        {
+        //if (precondCaching.isPeriodic())
+        //{
             // Elapsed timing interval (s)
-            precondCaching.updateTimes();
+        //    precondCaching.updateTimes();
 
-            if (piter == 0)
-            {
-                precondCaching.time0 = precondCaching.timeIter;
-            }
-            else if (piter == 1)
-            {
-                precondCaching.time1 = precondCaching.timeIter;
-            }
-        }
+        //    if (piter == 0)
+        //    {
+        //        precondCaching.time0 = precondCaching.timeIter;
+        //    }
+        //    else if (piter == 1)
+        //    {
+        //       precondCaching.time1 = precondCaching.timeIter;
+        //    }
+        //}
 
-        if
-        (
-            precondCaching.isPeriodic()
-         || precondCaching.isAdaptive()
-        )
-        {
-            ++piter;
-        }
+        //if
+        //(
+        //    precondCaching.isPeriodic()
+        // || precondCaching.isAdaptive()
+        //)
+        //{
+        //    ++piter;
+        //}
         if
         (
             matrixCaching.isPeriodic()

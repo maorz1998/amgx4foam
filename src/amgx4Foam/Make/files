@@ -1,9 +1,9 @@
-solvers/petscSolver.C
+/*solvers/petscSolver.C*/
 solvers/amgxSolver.C
-utils/petscUtils.C
-utils/petscControls.C
+/*utils/petscUtils.C*/
+/*utils/petscControls.C*/
 utils/linearSolverContextTable.C
-utils/petscLinearSolverContext.C
+/*utils/petscLinearSolverContext.C*/
 utils/amgxLinearSolverContext.C
 utils/cacheManager.C
 
